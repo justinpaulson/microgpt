@@ -16,9 +16,19 @@ module MicroGPT
       @adam_v = model.param_tensors.map { |p| Array.new(p.data.size, 0.0) }
     end
 
-    # Add text to the training corpus
+    # Add text to the training corpus (encodes in chunks for progress reporting)
     def add_text(text)
-      @corpus.concat(Tokenizer.encode(text))
+      chunk_size = Tokenizer.bpe? ? 100_000 : text.length
+      i = 0
+      while i < text.length
+        chunk = text[i, chunk_size]
+        @corpus.concat(Tokenizer.encode(chunk))
+        i += chunk_size
+        if Tokenizer.bpe? && text.length > chunk_size * 5
+          print "\r  encoding... #{(i * 100 / text.length).clamp(0, 100)}%"
+        end
+      end
+      puts "\r  encoding... done!        " if Tokenizer.bpe? && text.length > chunk_size * 5
     end
 
     # Run a single training step on a random window from the corpus.

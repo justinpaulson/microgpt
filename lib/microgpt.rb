@@ -3,6 +3,7 @@
 require_relative 'microgpt/tensor'
 require_relative 'microgpt/config'
 require_relative 'microgpt/tokenizer'
+require_relative 'microgpt/bpe'
 require_relative 'microgpt/model'
 require_relative 'microgpt/trainer'
 require_relative 'microgpt/checkpoint'

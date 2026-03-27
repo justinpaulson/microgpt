@@ -16,6 +16,7 @@ module MicroGPT
         },
         weights: model.param_tensors.map { |p| p.data.dup },
         trainer: trainer.state,
+        bpe_merges: Tokenizer.bpe? ? Tokenizer.bpe.merges : nil,
       }
       File.binwrite(path, Marshal.dump(data))
       File.size(path)
@@ -23,6 +24,12 @@ module MicroGPT
 
     def self.load(path)
       data = Marshal.load(File.binread(path))
+
+      # Restore BPE tokenizer if present
+      if data[:bpe_merges]
+        bpe = BPE.new(data[:bpe_merges])
+        Tokenizer.use_bpe(bpe)
+      end
 
       config = Config.new(**data[:config])
       model = Model.new(config)

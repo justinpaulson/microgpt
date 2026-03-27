@@ -6,6 +6,34 @@ require 'optparse'
 
 $stdout.sync = true
 
+CHECKPOINTS_DIR = File.expand_path('../checkpoints', __dir__)
+
+# Resolve a model name to a checkpoint path.
+# Accepts: full path, basename without extension, or partial match.
+def resolve_model(name)
+  return name if File.exist?(name)
+
+  # Try with .bin extension
+  with_ext = name.end_with?('.bin') ? name : "#{name}.bin"
+  full = File.join(CHECKPOINTS_DIR, with_ext)
+  return full if File.exist?(full)
+
+  # Try prefix match in checkpoints/
+  if Dir.exist?(CHECKPOINTS_DIR)
+    matches = Dir.glob(File.join(CHECKPOINTS_DIR, "#{name}*.bin")).sort
+    return matches.first if matches.length == 1
+
+    if matches.length > 1
+      puts "Ambiguous model name '#{name}'. Matches:"
+      matches.each { |m| puts "  #{File.basename(m, '.bin')}" }
+      exit 1
+    end
+  end
+
+  # Nothing found — return the path as-is (will create new model)
+  full
+end
+
 options = {
   model_path: 'checkpoints/model.bin',
   size: :small,
@@ -25,31 +53,42 @@ parser = OptionParser.new do |opts|
       chat                       Interactive chat with background training
       generate [prompt]          Generate text (reads stdin if no prompt given)
 
+    Models: use --model with a name, prefix, or path:
+      --model medium_v1          matches checkpoints/medium_v1.bin
+      --model toddler            matches if only one toddler*.bin exists
+      --model checkpoints/x.bin  exact path
+
   BANNER
 
-  opts.on("--model PATH", "Model checkpoint path (default: checkpoints/model.bin)") { |v| options[:model_path] = v }
+  opts.on("--model NAME", "Model name, prefix, or path (default: model)") { |v| options[:model_path] = v }
   opts.on("--size SIZE", [:tiny, :small, :medium], "Model size: tiny, small, medium (default: small)") { |v| options[:size] = v }
   opts.on("--steps N", Integer, "Training steps for train command (default: 1000)") { |v| options[:steps] = v }
   opts.on("--temperature T", Float, "Generation temperature (default: 0.8)") { |v| options[:temperature] = v }
   opts.on("--lr RATE", Float, "Learning rate (default: 0.001)") { |v| options[:lr] = v }
+  opts.on("--bpe N", Integer, "Train BPE tokenizer with N merges (e.g. 2000)") { |v| options[:bpe] = v }
+  opts.on("--no-train", "Chat without background training (static mode)") { options[:no_train] = true }
   opts.on("-h", "--help", "Show this help") { puts opts; exit }
 end
 
 command = ARGV.shift
 parser.parse!(ARGV)
+options[:model_path] = resolve_model(options[:model_path])
 
 def load_or_create_model(options)
   if MicroGPT::Checkpoint.exists?(options[:model_path])
     puts "Loading model from #{options[:model_path]}..."
     model, trainer = MicroGPT::Checkpoint.load(options[:model_path])
-    puts "  #{model.num_params} params | step #{trainer.step} | corpus #{trainer.corpus.length} bytes"
+    bpe_info = MicroGPT::Tokenizer.bpe? ? " | BPE vocab #{MicroGPT::Tokenizer.vocab_size}" : ""
+    puts "  #{model.num_params} params | step #{trainer.step} | corpus #{trainer.corpus.length} bytes#{bpe_info}"
     [model, trainer]
   else
     config = MicroGPT::Config.preset(options[:size])
+    config.vocab_size = MicroGPT::Tokenizer.vocab_size  # adapt to BPE if active
+    bpe_info = MicroGPT::Tokenizer.bpe? ? " | BPE vocab #{config.vocab_size}" : ""
     puts "Creating new #{options[:size]} model..."
     model = MicroGPT::Model.new(config)
     trainer = MicroGPT::Trainer.new(model, lr: options[:lr])
-    puts "  #{model.num_params} params | #{config.n_layer}L/#{config.n_embd}D/#{config.n_head}H/#{config.block_size}ctx"
+    puts "  #{model.num_params} params | #{config.n_layer}L/#{config.n_embd}D/#{config.n_head}H/#{config.block_size}ctx#{bpe_info}"
     [model, trainer]
   end
 end
@@ -61,19 +100,33 @@ when "train"
     exit 1
   end
 
-  model, trainer = load_or_create_model(options)
-
-  # Ingest all files
+  # Read all input files first (needed for BPE training before model creation)
+  all_text = +""
   ARGV.each do |file|
     unless File.exist?(file)
       puts "File not found: #{file}"
       exit 1
     end
+    all_text << File.read(file)
+    all_text << "\n"
+  end
+
+  # Train BPE tokenizer if requested (must happen before model creation)
+  if options[:bpe] && !MicroGPT::Checkpoint.exists?(options[:model_path])
+    bpe = MicroGPT::BPE.train(all_text, num_merges: options[:bpe])
+    MicroGPT::Tokenizer.use_bpe(bpe)
+    puts ""
+  end
+
+  model, trainer = load_or_create_model(options)
+
+  # Ingest all files (tokenizer is now set up)
+  ARGV.each do |file|
     text = File.read(file)
     trainer.add_text(text)
     puts "  ingested #{text.bytesize} bytes from #{file}"
   end
-  puts "  total corpus: #{trainer.corpus.length} bytes"
+  puts "  total corpus: #{trainer.corpus.length} tokens"
   puts ""
 
   num_steps = options[:steps]
@@ -108,7 +161,9 @@ when "train"
 when "chat"
   model, trainer = load_or_create_model(options)
   puts ""
-  chat = MicroGPT::Chat.new(model, trainer, checkpoint_path: options[:model_path])
+  chat = MicroGPT::Chat.new(model, trainer,
+    checkpoint_path: options[:model_path],
+    training: !options[:no_train])
   chat.run
 
 when "generate"

@@ -2,10 +2,11 @@
 
 module MicroGPT
   class Chat
-    def initialize(model, trainer, checkpoint_path: nil)
+    def initialize(model, trainer, checkpoint_path: nil, training: true)
       @model = model
       @trainer = trainer
       @checkpoint_path = checkpoint_path
+      @enable_training = training
       @training = false
       @train_thread = nil
       @training_mutex = Mutex.new
@@ -13,7 +14,9 @@ module MicroGPT
     end
 
     def run
-      puts "MicroGPT Chat"
+      @temperature = 0.4
+      mode = @enable_training ? "learning" : "static"
+      puts "MicroGPT Chat (#{mode} mode)"
       puts "  model: #{@model.config.n_layer}L/#{@model.config.n_embd}D/#{@model.config.n_head}H | #{@model.num_params} params"
       puts "  corpus: #{@trainer.corpus.length} bytes | step: #{@trainer.step}"
       puts ""
@@ -22,14 +25,19 @@ module MicroGPT
       puts "  /status         — show training progress"
       puts "  /sample [len]   — generate a raw text sample"
       puts "  /save [path]    — save model checkpoint"
-      puts "  /temp <value>   — set generation temperature (current: #{@temperature = 0.8})"
+      puts "  /temp <value>   — set generation temperature (current: #{@temperature})"
       puts "  /quit           — exit"
       puts ""
-      puts "Training runs in the background while you type."
-      puts "The model learns from your conversations + any ingested files."
+      if @enable_training
+        puts "Training runs in the background while you type."
+        puts "The model learns from your conversations + any ingested files."
+      else
+        puts "Static mode: the model will not learn from conversations."
+        puts "Use /train <file> to add data, then restart without --no-train to learn."
+      end
       puts ""
 
-      start_training
+      start_training if @enable_training
 
       loop do
         print "You: "
@@ -66,22 +74,26 @@ module MicroGPT
 
         # Generate a response
         response = nil
-        @training_mutex.synchronize do
+        if @enable_training
+          @training_mutex.synchronize { response = generate_response(input) }
+        else
           response = generate_response(input)
         end
 
         puts "Bot: #{response}\n\n"
 
         # Add conversation to corpus so the model learns from it
-        conversation = "You: #{input}\nBot: #{response}\n"
-        @training_mutex.synchronize do
-          @trainer.add_text(conversation)
+        if @enable_training
+          conversation = "You: #{input}\nBot: #{response}\n"
+          @training_mutex.synchronize do
+            @trainer.add_text(conversation)
+          end
         end
       end
 
-      stop_training
-      auto_save
-      puts "Goodbye! (#{@trainer.step} training steps completed)"
+      stop_training if @enable_training
+      auto_save if @enable_training
+      puts "Goodbye!#{@enable_training ? " (#{@trainer.step} training steps completed)" : ""}"
     end
 
     private
