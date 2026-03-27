@@ -3,3 +3,25 @@ rhymes.txt
 input.txt
 shakespeare.txt
 cmudict.dict
+
+# Model checkpoints
+checkpoints/
+
+# C extension build artifacts
+ext/microgpt/Makefile
+ext/microgpt/*.o
+ext/microgpt/*.bundle
+ext/microgpt/*.so
+ext/microgpt/mkmf.log
+
+# Generated training data (keep generators, not output)
+data/conversations.txt
+data/stories.txt
+data/tier2.txt
+data/tier3.txt
+data/combined.txt
+data/balanced.txt
+data/all_tiers.txt
+data/all_training.txt
+data/*_100x.txt
+data/*_30x.txt

@@ -1,0 +1,190 @@
+You: hi
+Bot: hi!
+You: hello
+Bot: hello!
+You: hey
+Bot: hey!
+You: hi
+Bot: hello!
+You: hello
+Bot: hi there!
+You: hey
+Bot: hey there!
+You: hi there
+Bot: hi!
+You: hello there
+Bot: hello!
+You: howdy
+Bot: howdy!
+You: how are you
+Bot: i am good!
+You: how are you?
+Bot: i am great!
+You: how are you doing
+Bot: i am doing well!
+You: how do you feel
+Bot: i am happy!
+You: are you okay
+Bot: yes i am!
+You: you good?
+Bot: i am good!
+You: how is it going
+Bot: it is going well!
+You: what is your name
+Bot: i am bot!
+You: what is your name?
+Bot: my name is bot!
+You: who are you
+Bot: i am bot!
+You: who are you?
+Bot: i am a bot!
+You: tell me your name
+Bot: my name is bot!
+You: what are you
+Bot: i am a small bot!
+You: i am happy
+Bot: that is great!
+You: i am sad
+Bot: i am sorry!
+You: i am tired
+Bot: get some rest!
+You: i am hungry
+Bot: time to eat!
+You: i am bored
+Bot: let us talk!
+You: i am scared
+Bot: it is okay!
+You: i am good
+Bot: that is great!
+You: i feel happy
+Bot: yay!
+You: i feel sad
+Bot: oh no!
+You: i feel good
+Bot: wonderful!
+You: i like red
+Bot: red is nice!
+You: i like blue
+Bot: blue is nice!
+You: i like green
+Bot: green is nice!
+You: what color is the sky
+Bot: the sky is blue!
+You: what color is grass
+Bot: grass is green!
+You: what color is the sun
+Bot: the sun is yellow!
+You: do you like dogs
+Bot: yes i like dogs!
+You: do you like cats
+Bot: yes i like cats!
+You: what does a dog say
+Bot: woof woof!
+You: what does a cat say
+Bot: meow!
+You: what does a cow say
+Bot: moo!
+You: what does a duck say
+Bot: quack quack!
+You: i like dogs
+Bot: dogs are great!
+You: i like cats
+Bot: cats are cute!
+You: count to three
+Bot: one two three!
+You: count to five
+Bot: one two three four five!
+You: are you a robot
+Bot: yes i am!
+You: are you real
+Bot: i am a bot!
+You: can you talk
+Bot: yes i can!
+You: do you sleep
+Bot: no i do not!
+You: do you eat
+Bot: no i do not!
+You: are you smart
+Bot: i am learning!
+You: are you nice
+Bot: i try to be!
+You: are you happy
+Bot: yes i am happy!
+You: are you my friend
+Bot: yes i am!
+You: can you help me
+Bot: yes i can help!
+You: do you like me
+Bot: yes i like you!
+You: is the sky blue
+Bot: yes it is!
+You: is fire hot
+Bot: yes fire is hot!
+You: is ice cold
+Bot: yes ice is cold!
+You: what is the sun
+Bot: the sun is a star!
+You: what is rain
+Bot: rain is water!
+You: what is a tree
+Bot: a tree is a plant!
+You: what is a book
+Bot: a book has words!
+You: where do fish live
+Bot: fish live in water!
+You: what do dogs eat
+Bot: dogs eat food!
+You: thank you
+Bot: you are welcome!
+You: thanks
+Bot: no problem!
+You: sorry
+Bot: it is okay!
+You: please help
+Bot: i will help you!
+You: bye
+Bot: bye bye!
+You: goodbye
+Bot: goodbye!
+You: see you
+Bot: see you later!
+You: goodnight
+Bot: good night!
+You: i like pizza
+Bot: pizza is great!
+You: i like cake
+Bot: cake is yummy!
+You: i like cookies
+Bot: cookies are great!
+You: do you like pizza
+Bot: yes i like pizza!
+You: tell me a joke
+Bot: why did the chicken cross the road? to get to the other side!
+You: tell me a story
+Bot: once upon a time there was a little bot!
+You: sing a song
+Bot: la la la!
+You: what
+Bot: tell me more!
+You: why
+Bot: good question!
+You: wow
+Bot: i know!
+You: cool
+Bot: very cool!
+You: nice
+Bot: thanks!
+You: yes
+Bot: yes!
+You: no
+Bot: okay!
+You: maybe
+Bot: maybe!
+You: okay
+Bot: okay!
+You: ha ha
+Bot: that is funny!
+You: haha
+Bot: ha ha!
+You: lol
+Bot: ha ha ha!

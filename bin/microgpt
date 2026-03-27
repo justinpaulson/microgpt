@@ -1,0 +1,140 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require_relative '../lib/microgpt'
+require 'optparse'
+
+$stdout.sync = true
+
+options = {
+  model_path: 'checkpoints/model.bin',
+  size: :small,
+  steps: 1000,
+  temperature: 0.8,
+  lr: 1e-3,
+}
+
+parser = OptionParser.new do |opts|
+  opts.banner = <<~BANNER
+    MicroGPT — a tiny, continuously-learning language model in pure Ruby
+
+    Usage: microgpt <command> [options]
+
+    Commands:
+      train <file> [file2 ...]   Train on text files
+      chat                       Interactive chat with background training
+      generate [prompt]          Generate text (reads stdin if no prompt given)
+
+  BANNER
+
+  opts.on("--model PATH", "Model checkpoint path (default: checkpoints/model.bin)") { |v| options[:model_path] = v }
+  opts.on("--size SIZE", [:tiny, :small, :medium], "Model size: tiny, small, medium (default: small)") { |v| options[:size] = v }
+  opts.on("--steps N", Integer, "Training steps for train command (default: 1000)") { |v| options[:steps] = v }
+  opts.on("--temperature T", Float, "Generation temperature (default: 0.8)") { |v| options[:temperature] = v }
+  opts.on("--lr RATE", Float, "Learning rate (default: 0.001)") { |v| options[:lr] = v }
+  opts.on("-h", "--help", "Show this help") { puts opts; exit }
+end
+
+command = ARGV.shift
+parser.parse!(ARGV)
+
+def load_or_create_model(options)
+  if MicroGPT::Checkpoint.exists?(options[:model_path])
+    puts "Loading model from #{options[:model_path]}..."
+    model, trainer = MicroGPT::Checkpoint.load(options[:model_path])
+    puts "  #{model.num_params} params | step #{trainer.step} | corpus #{trainer.corpus.length} bytes"
+    [model, trainer]
+  else
+    config = MicroGPT::Config.preset(options[:size])
+    puts "Creating new #{options[:size]} model..."
+    model = MicroGPT::Model.new(config)
+    trainer = MicroGPT::Trainer.new(model, lr: options[:lr])
+    puts "  #{model.num_params} params | #{config.n_layer}L/#{config.n_embd}D/#{config.n_head}H/#{config.block_size}ctx"
+    [model, trainer]
+  end
+end
+
+case command
+when "train"
+  if ARGV.empty?
+    puts "Usage: microgpt train <file> [file2 ...]"
+    exit 1
+  end
+
+  model, trainer = load_or_create_model(options)
+
+  # Ingest all files
+  ARGV.each do |file|
+    unless File.exist?(file)
+      puts "File not found: #{file}"
+      exit 1
+    end
+    text = File.read(file)
+    trainer.add_text(text)
+    puts "  ingested #{text.bytesize} bytes from #{file}"
+  end
+  puts "  total corpus: #{trainer.corpus.length} bytes"
+  puts ""
+
+  num_steps = options[:steps]
+  t0 = Time.now
+  num_steps.times do |step|
+    loss = trainer.train_step
+    break unless loss
+
+    if step == 0 || (step + 1) % 50 == 0
+      elapsed = Time.now - t0
+      ms = step > 0 ? (elapsed / step * 1000).round : 0
+      print "\r  step #{(step + 1).to_s.rjust(5)}/#{num_steps} | loss #{format('%.4f', loss)} | #{ms}ms/step"
+    end
+
+    if (step + 1) % 500 == 0
+      puts "\n\n  --- sample @ step #{step + 1} ---"
+      MicroGPT.no_grad do
+        tokens = model.generate([10], max_len: 150, temperature: options[:temperature])
+        puts "  " + MicroGPT::Tokenizer.decode(tokens).gsub("\n", "\n  ")
+      end
+      puts "  ---\n\n"
+    end
+  end
+
+  elapsed = Time.now - t0
+  puts "\n\n  training done: #{trainer.step} steps in #{format('%.1f', elapsed)}s"
+
+  # Save checkpoint
+  size = MicroGPT::Checkpoint.save(options[:model_path], model: model, trainer: trainer)
+  puts "  saved to #{options[:model_path]} (#{size} bytes)"
+
+when "chat"
+  model, trainer = load_or_create_model(options)
+  puts ""
+  chat = MicroGPT::Chat.new(model, trainer, checkpoint_path: options[:model_path])
+  chat.run
+
+when "generate"
+  unless MicroGPT::Checkpoint.exists?(options[:model_path])
+    puts "No model found at #{options[:model_path]}. Train one first:"
+    puts "  microgpt train <file>"
+    exit 1
+  end
+
+  model, trainer = load_or_create_model(options)
+
+  prompt = if ARGV.empty?
+    ""
+  else
+    ARGV.join(" ")
+  end
+
+  prompt_tokens = prompt.empty? ? [10] : MicroGPT::Tokenizer.encode(prompt)
+  puts "" if prompt.empty?
+
+  MicroGPT.no_grad do
+    tokens = model.generate(prompt_tokens, max_len: 300, temperature: options[:temperature])
+    output = MicroGPT::Tokenizer.decode(tokens)
+    puts output
+  end
+
+else
+  puts parser.help
+end
