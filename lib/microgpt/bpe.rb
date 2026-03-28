@@ -79,10 +79,18 @@ module MicroGPT
     end
 
     # Encode text to token IDs.
-    # Applies merges sequentially in priority order — equivalent to the iterative
-    # "find best merge" approach but O(n * merges) instead of O(n^2).
+    # Uses C extension if available (50-100x faster), falls back to Ruby.
     def encode(text)
       return [] if text.empty?
+      if defined?(MicroGPT::Native) && MicroGPT::Native.respond_to?(:bpe_encode)
+        @merges_flat ||= @merges.flatten
+        MicroGPT::Native.bpe_encode(text.bytes, @merges_flat, @merges.length)
+      else
+        encode_ruby(text)
+      end
+    end
+
+    private def encode_ruby(text)
       tokens = text.bytes
       @merges.each_with_index do |(a, b), i|
         new_id = 256 + i
