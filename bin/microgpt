@@ -61,7 +61,7 @@ parser = OptionParser.new do |opts|
   BANNER
 
   opts.on("--model NAME", "Model name, prefix, or path (default: model)") { |v| options[:model_path] = v }
-  opts.on("--size SIZE", [:tiny, :small, :medium], "Model size: tiny, small, medium (default: small)") { |v| options[:size] = v }
+  opts.on("--size SIZE", [:tiny, :small, :medium, :large], "Model size: tiny, small, medium, large (default: small)") { |v| options[:size] = v }
   opts.on("--steps N", Integer, "Training steps for train command (default: 1000)") { |v| options[:steps] = v }
   opts.on("--temperature T", Float, "Generation temperature (default: 0.8)") { |v| options[:temperature] = v }
   opts.on("--lr RATE", Float, "Learning rate (default: 0.001)") { |v| options[:lr] = v }
