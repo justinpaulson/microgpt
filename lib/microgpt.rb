@@ -8,4 +8,5 @@ require_relative 'microgpt/model'
 require_relative 'microgpt/trainer'
 require_relative 'microgpt/checkpoint'
 require_relative 'microgpt/chat'
+require_relative 'microgpt/fused_trainer'
 require_relative 'microgpt/native_ops' # C extension override (falls back to pure Ruby)
